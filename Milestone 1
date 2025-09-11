@@ -1,1 +1,23 @@
 %%  Milestone 1
+
+%Importaciones
+from numpy import array      %Importar la operacion con vectores
+
+%funciones
+def F(U):   % F:R4->R4   F es una funcion de R4 en R4
+  r = U[0:2]     %cogemos las dos primeras componenentes de U
+  dr = U[2:4]    %cogemos las dos ultimas componenetes de U
+  return array(dr, -r/(fabs(r)**3))
+
+%Otra forma(peor)
+%def F(U):
+ % x, y, xd, yd = U
+ % F = array([x, y, -x/sqrt(x**2+y**2)**3, -y/sqrt(x**2+y**2)**3])
+
+
+
+
+
+
+
+U=array([1,0,0,1])

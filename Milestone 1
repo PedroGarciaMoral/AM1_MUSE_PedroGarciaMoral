@@ -2,6 +2,7 @@
 
 %Importaciones
 from numpy import array      %Importar la operacion con vectores
+from numpy import fabs       %Importar el valor absoluto
 
 %funciones
 def F(U):   % F:R4->R4   F es una funcion de R4 en R4

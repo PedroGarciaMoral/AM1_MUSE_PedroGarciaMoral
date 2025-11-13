@@ -1,1 +1,119 @@
+#Milestone 3 - AM1- MUSE
+#Estimacion de error por integracion numérica
+#Se utilizan los métodos de Euler, RK4 y Crank-Nicolson
 
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy.linalg import norm
+import Milestone_2 as m2  # usa las funciones definidas en Milestone_2
+
+# --- Helpers ---------------------------------------------------------------
+def integrate_one(F, U0, T, N, step_fn):
+    """Integra desde t=0 a t=T con N pasos usando step_fn(F,U,t,dt).
+    Devuelve U_final (vector)"""
+    dt = T / N
+    U = U0.copy()
+    t = 0.0
+    for _ in range(N):
+        res = step_fn(F, U, t, dt)
+        # algunos step_fn (implícitos) devuelven (U_next, convergencia)
+        if isinstance(res, tuple):
+            U = res[0]
+        else:
+            U = res
+        t += dt
+    return U
+
+def get_stepper_by_name(name):
+    mapping = {
+        "Euler": m2.Euler,
+        "RK4": m2.RK4,
+        "Crank-Nicolson": m2.Crank_Nicolson,
+        "Inverse-Euler": m2.Inverse_Euler
+    }
+    return mapping[name]
+
+def method_order(name):
+    orders = {
+        "Euler": 1,
+        "Inverse-Euler": 1,
+        "Crank-Nicolson": 2,
+        "RK4": 4
+    }
+    return orders[name]
+
+# --- Richardson extrapolation ----------------------------------------------
+def richardson_estimate(F, U0, T, N, method_name):
+    """Calcula estimación de Richardson para el estado final.
+    - N: número de pasos con paso h = T/N
+    Se integra con N y con 2N. Devuelve:
+      U_h (final con h), U_h2 (final con h/2), U_extrap (Richardson), est_error (norma del estimador)
+    """
+    step_fn = get_stepper_by_name(method_name)
+    U_h = integrate_one(F, U0, T, N, step_fn)
+    U_h2 = integrate_one(F, U0, T, 2*N, step_fn)
+    p = method_order(method_name)
+    factor = 2**p - 1
+    # estimador E ≈ (U_h2 - U_h)/factor
+    E = (U_h2 - U_h) / factor
+    U_extrap = U_h2 + E
+    est_error = norm(E)
+    return U_h, U_h2, U_extrap, est_error
+
+# --- Convergence rate estimation ------------------------------------------
+def convergence_rate(F, U0, T, Ns, method_name):
+    """Calcula errores estimados por Richardson y ajusta pendiente en log-log.
+    Ns: lista de N (pasos) para evaluar (ej: [50,100,200,...])
+    Devuelve dt_list, err_list_est, p_fit (pendiente estimada)"""
+    err_list = []
+    dt_list = []
+    for N in Ns:
+        _, _, _, est_err = richardson_estimate(F, U0, T, N, method_name)
+        dt = T / N
+        dt_list.append(dt)
+        err_list.append(est_err)
+    dt_arr = np.array(dt_list)
+    err_arr = np.array(err_list)
+    # evitar ceros
+    mask = err_arr > 0
+    if mask.sum() < 2:
+        p_fit = np.nan
+    else:
+        coeff = np.polyfit(np.log(dt_arr[mask]), np.log(err_arr[mask]), 1)
+        p_fit = coeff[0]
+    return dt_arr, err_arr, p_fit
+
+# --- Demo / comparación ---------------------------------------------------
+def F_grav(U, t):
+    r = U[0:2]
+    v = U[2:4]
+    rnorm = norm(r)
+    accel = -r / (rnorm**3 + 1e-16)
+    return np.concatenate((v, accel), axis=None)
+
+if __name__ == "__main__":
+    # condiciones iniciales (misma que Milestone_1/2)
+    r0 = np.array([0.0, 1.0])
+    dr0 = np.array([1.0, 0.0])
+    U0 = np.concatenate((r0, dr0))
+
+    T = 1.0
+    Ns = [50, 100, 200, 400, 800]  # pruebas de refinamiento
+    methods = ["Euler", "Inverse-Euler", "Crank-Nicolson", "RK4"]
+
+    plt.figure(figsize=(8,6))
+    for name in methods:
+        dt_arr, err_arr, p_est = convergence_rate(F_grav, U0, T, Ns, name)
+        # Mostrar resultados
+        print(f"{name}: pendiente estimada p ≈ {p_est:.3f}")
+        # Graficar log-log
+        plt.loglog(dt_arr, err_arr, '-o', label=f"{name} (p≈{p_est:.2f})")
+
+    plt.gca().invert_xaxis()
+    plt.xlabel("dt")
+    plt.ylabel("Error estimado (Richardson, norma)")
+    plt.title("Estimación de error por Richardson y tasa de convergencia")
+    plt.legend()
+    plt.grid(True, which="both", ls="--", alpha=0.5)
+    plt.show()
+```# filepath: d:\0.MUSE\1º\AM1 - Ampliación de matemáticas 1\Programación\AM1.5\Milestone_3.py

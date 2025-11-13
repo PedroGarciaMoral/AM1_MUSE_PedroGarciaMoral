@@ -1,3 +1,8 @@
+#Milestone 2 - AM1- MUSE
+#Integracion numérica con funciones
+#Este código integra la órbita de un cuerpo bajo la influencia de un campo gravitatorio central 
+#Se utilizan los métodos de Euler, RK4, Crank-Nicolson y Euler inverso (implicito)
+
 import numpy as np
 from numpy.linalg import norm
 import matplotlib.pyplot as plt

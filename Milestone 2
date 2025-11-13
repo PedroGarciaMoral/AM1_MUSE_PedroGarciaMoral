@@ -1,1 +1,96 @@
+import numpy as np
+from numpy.linalg import norm
+import matplotlib.pyplot as plt
 
+# Step integrators (one-step)
+def Euler(F, U, t, dt):
+    """Euler one step"""
+    return U + dt * F(U, t)
+
+def RK4(F, U, t, dt):
+    """RK4 one step"""
+    k1 = F(U, t)
+    k2 = F(U + 0.5 * dt * k1, t + 0.5 * dt)
+    k3 = F(U + 0.5 * dt * k2, t + 0.5 * dt)  
+    k4 = F(U + dt * k3, t + dt)
+    return U + (dt / 6.0) * (k1 + 2*k2 + 2*k3 + k4)
+
+def Crank_Nicolson(F, U, t, dt):
+    """Crank-Nicolson one step."""
+    #Devuelve (U_next, converged_bool)
+    tol = 1e-12
+    max_iter = 100
+    itU = U + dt * F(U, t)  # initial guess (explicit Euler)
+    for _ in range(max_iter):
+        U_new = U + 0.5 * dt * (F(U, t) + F(itU, t + dt))
+        if norm(U_new - itU) < tol:
+            return U_new, True
+        itU = U_new
+    return itU, False
+
+def Inverse_Euler(F, U, t, dt):
+    """Backward (implicit) Euler one step."""
+    #Returns (U_next, converged_bool).
+    tol=1e-12
+    max_iter=100
+    itU = U + dt * F(U, t)  # initial guess (euler)
+    for _ in range(max_iter):
+        U_new = U + dt * F(itU, t + dt)
+        if norm(U_new - itU) < tol:
+            return U_new, True
+        itU = U_new
+    return itU, False
+
+# ---------------- Demo using central gravitational-like force (same form as Milestone_1) ----------------
+def F_grav(U, t):
+    # U = [x, y, vx, vy]
+    r = U[0:2]
+    v = U[2:4]
+    # add tiny regularization to avoid singularity
+    rnorm = norm(r)
+    accel = -r / (rnorm**3 + 1e-16)
+    return np.concatenate((v, accel), axis=None)
+
+if __name__ == "__main__":
+    # Common initial data (as Milestone_1)
+    r0 = np.array([0.0, 1.0])
+    dr0 = np.array([1.0, 0.0])
+    U0 = np.concatenate((r0, dr0))
+
+    T = 1.0
+    N = 4000
+    dt = T / N
+    times = np.linspace(0, T, N+1)
+
+    methods = {
+        "Euler": lambda U, t: Euler(F_grav, U, t, dt),
+        "RK4": lambda U, t: RK4(F_grav, U, t, dt),
+        "Crank-Nicolson": lambda U, t: Crank_Nicolson(F_grav, U, t, dt)[0],
+        "Inverse-Euler": lambda U, t: Inverse_Euler(F_grav, U, t, dt)[0],
+    }
+
+    plt.figure(figsize=(8,8))
+    colors = {"Euler":"C0", "RK4":"C1", "Crank-Nicolson":"C2", "Inverse-Euler":"C3"}
+
+    for name, step in methods.items():
+        U = np.zeros((N+1, 4))
+        U[0,:] = U0.copy()
+        t = 0.0
+        for n in range(N):
+            res = step(U[n,:], t)
+            # step may return tuple for implicit methods; ensure vector
+            if isinstance(res, tuple):
+                U[n+1,:] = res[0]
+            else:
+                U[n+1,:] = res
+            t += dt
+        plt.plot(U[:,0], U[:,1], label=name, color=colors.get(name,'k'), linewidth=0.6)
+
+    # Plot formatting
+    plt.plot(0, 0, 'ro', markersize=6, label='Punto crítico')
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.axis("equal")
+    plt.title(f"Comparativa integradores (T={T}, N={N})")
+    plt.legend()
+    plt.show()

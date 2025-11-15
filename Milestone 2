@@ -1,101 +1,103 @@
 #Milestone 2 - AM1- MUSE
-#Integracion numérica con funciones
+#Integracion numérica de Cauchy Problem con funciones 
 #Este código integra la órbita de un cuerpo bajo la influencia de un campo gravitatorio central 
 #Se utilizan los métodos de Euler, RK4, Crank-Nicolson y Euler inverso (implicito)
 
 import numpy as np
 from numpy.linalg import norm
 import matplotlib.pyplot as plt
+import warnings
 
-# Step integrators (one-step)
+# Funciones de integradores unipaso
+ # 1) EULER
+ # 2) RK4
+ # 3) CRANK-NICOLSON
+ # 4) INVERSE EULER
+
 def Euler(F, U, t, dt):
-    """Euler one step"""
     return U + dt * F(U, t)
 
 def RK4(F, U, t, dt):
-    """RK4 one step"""
     k1 = F(U, t)
     k2 = F(U + 0.5 * dt * k1, t + 0.5 * dt)
-    k3 = F(U + 0.5 * dt * k2, t + 0.5 * dt)  
+    k3 = F(U + 0.5 * dt * k2, t + 0.5 * dt)
     k4 = F(U + dt * k3, t + dt)
     return U + (dt / 6.0) * (k1 + 2*k2 + 2*k3 + k4)
 
 def Crank_Nicolson(F, U, t, dt):
-    """Crank-Nicolson one step."""
-    #Devuelve (U_next, converged_bool)
     tol = 1e-12
     max_iter = 100
-    itU = U + dt * F(U, t)  # initial guess (explicit Euler)
+    itU = U + dt * F(U, t)
     for _ in range(max_iter):
         U_new = U + 0.5 * dt * (F(U, t) + F(itU, t + dt))
         if norm(U_new - itU) < tol:
-            return U_new, True
+            return U_new
         itU = U_new
-    return itU, False
+    warnings.warn(f"Crank-Nicolson sin convergencia en t={t:.4f}")
+    return itU
 
 def Inverse_Euler(F, U, t, dt):
-    """Backward (implicit) Euler one step."""
-    #Returns (U_next, converged_bool).
-    tol=1e-12
-    max_iter=100
-    itU = U + dt * F(U, t)  # initial guess (euler)
+    tol = 1e-12
+    max_iter = 100
+    itU = U + dt * F(U, t)
     for _ in range(max_iter):
         U_new = U + dt * F(itU, t + dt)
         if norm(U_new - itU) < tol:
-            return U_new, True
+            return U_new
         itU = U_new
-    return itU, False
+    warnings.warn(f"Inverse-Euler sin convergencia en t={t:.4f}")
+    return itU
 
-# ---------------- Demo using central gravitational-like force (same form as Milestone_1) ----------------
-def F_grav(U, t):
+# Integrador de Cauchy general
+def Cauchy_problem(scheme, U0, F, times):
+    U = np.zeros((len(times), len(U0)))
+    U[0] = U0
+    for k in range(len(times)-1):
+        t = times[k]
+        dt = times[k+1] - times[k]
+        U[k+1] = scheme(F, U[k], t, dt)
+    return U
+
+# Problema concreto
+def F(U, t):
     # U = [x, y, vx, vy]
     r = U[0:2]
     v = U[2:4]
-    # add tiny regularization to avoid singularity
     rnorm = norm(r)
     accel = -r / (rnorm**3 + 1e-16)
-    return np.concatenate((v, accel), axis=None)
+    #añadida tolerancia para evitar singularidad
+    return np.concatenate((v, accel))
 
 if __name__ == "__main__":
-    # Common initial data (as Milestone_1)
+    # Condiciones iniciales
     r0 = np.array([0.0, 1.0])
     dr0 = np.array([1.0, 0.0])
     U0 = np.concatenate((r0, dr0))
-
-    T = 1.0
-    N = 4000
+    # Discretización temporal
+    T = 5.0
+    N = 1000
     dt = T / N
     times = np.linspace(0, T, N+1)
 
     methods = {
-        "Euler": lambda U, t: Euler(F_grav, U, t, dt),
-        "RK4": lambda U, t: RK4(F_grav, U, t, dt),
-        "Crank-Nicolson": lambda U, t: Crank_Nicolson(F_grav, U, t, dt)[0],
-        "Inverse-Euler": lambda U, t: Inverse_Euler(F_grav, U, t, dt)[0],
+        "Euler": Euler,
+        "RK4": RK4,
+        "Crank-Nicolson": Crank_Nicolson,
+        "Inverse-Euler": Inverse_Euler,
     }
 
     plt.figure(figsize=(8,8))
     colors = {"Euler":"C0", "RK4":"C1", "Crank-Nicolson":"C2", "Inverse-Euler":"C3"}
 
-    for name, step in methods.items():
-        U = np.zeros((N+1, 4))
-        U[0,:] = U0.copy()
-        t = 0.0
-        for n in range(N):
-            res = step(U[n,:], t)
-            # step may return tuple for implicit methods; ensure vector
-            if isinstance(res, tuple):
-                U[n+1,:] = res[0]
-            else:
-                U[n+1,:] = res
-            t += dt
+    for name, scheme in methods.items():
+        U = Cauchy_problem(scheme, U0, F, times)
         plt.plot(U[:,0], U[:,1], label=name, color=colors.get(name,'k'), linewidth=0.6)
 
-    # Plot formatting
-    plt.plot(0, 0, 'ro', markersize=6, label='Punto crítico')
     plt.xlabel("x")
     plt.ylabel("y")
     plt.axis("equal")
+    plt.xlim(-2, 2)
+    plt.ylim(-2, 2)
     plt.title(f"Comparativa integradores (T={T}, N={N})")
     plt.legend()
     plt.show()

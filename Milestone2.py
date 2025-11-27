@@ -35,15 +35,15 @@ Euler scheme has an spectral radius p>1 so is unstable
 Explicit method U_n+1 = U_n + delta_T * F(dr_n,r_n)
 """
 def Euler(F,U0,n,delta_T):
-    U_Euler=zeros((5,n)) #Definition of the size of U state vector where each row is [r(1x2),dr(1x2),t]'
-    U_Euler[0:4,0]= U0 #Include initial conditions in U
+    U=zeros((5,n)) #Definition of the size of U state vector where each row is [r(1x2),dr(1x2),t]'
+    U[0:4,0]= U0 #Include initial conditions in U
 
     for i in range (n):
-        U_Euler[4,i]=i*delta_T #Include time in U[5,:]
+        U[4,i]=i*delta_T #Include time in U[5,:]
 
     for i in range (1,n):
-        U_Euler[0:4,i]=U_Euler[0:4,i-1]+delta_T*F(U_Euler[2:4,i-1],U_Euler[0:2,i-1]) #Euler scheme--> U_n+1 = U_n + delta_T * F(dr_n,r_n)
-    return U_Euler
+        U[0:4,i]=U[0:4,i-1]+delta_T*F(U[2:4,i-1],U[0:2,i-1]) #Euler scheme--> U_n+1 = U_n + delta_T * F(dr_n,r_n)
+    return U
 
 """
 ----------------------------
@@ -57,27 +57,27 @@ calculate the Error = U_n+1_Cranck - U_n+1_Euler and if the error is > tolerance
 until the solution converges so the Error < tolerance
 """
 def Cranck_Nicolson(F,U0,n,delta_T):
-    U_Cranck=zeros((5,n)) #Definition of the size of U state vector where each row is [r(1x2),dr(1x2),t]'
-    U_Cranck[0:4,0]= U0 #Include initial conditions in U
+    U=zeros((5,n)) #Definition of the size of U state vector where each row is [r(1x2),dr(1x2),t]'
+    U[0:4,0]= U0 #Include initial conditions in U
     y_Euler=zeros(4) #Definition of the vector in which the Euler solution will be stored for each time step to iterate
     y_Cranck=zeros((4,2)) #Definition of the vector in which the Cranck_Nicolson solution will be stored for each time step to iterate
     Error_Cranck=zeros(4) #Definition of the error
     
     for i in range (n):
-        U_Cranck[4,i]=i*delta_T #Include time in U in U[5,:]
+        U[4,i]=i*delta_T #Include time in U in U[5,:]
 
     for i in range (1,n):
-        y_Euler=U_Cranck[0:4,i-1]+delta_T*F(U_Cranck[2:4,i-1],U_Cranck[0:2,i-1]) #Euler scheme--> U_n+1 = U_n + delta_T * F(dr_n,r_n)
-        y_Cranck[0:4,0]=U_Cranck[0:4,i-1]+delta_T/2*(F(U_Cranck[2:4,i-1],U_Cranck[0:2,i-1])+F(y_Euler[2:4],y_Euler[0:2])) #Cranck-Nicolson scheme--> U_n+1 = U_n + delta_T/2 * (F(dr_n,r_n) + F(dr_n+1,r_n+1)) with Euler first
+        y_Euler=U[0:4,i-1]+delta_T*F(U[2:4,i-1],U[0:2,i-1]) #Euler scheme--> U_n+1 = U_n + delta_T * F(dr_n,r_n)
+        y_Cranck[0:4,0]=U[0:4,i-1]+delta_T/2*(F(U[2:4,i-1],U[0:2,i-1])+F(y_Euler[2:4],y_Euler[0:2])) #Cranck-Nicolson scheme--> U_n+1 = U_n + delta_T/2 * (F(dr_n,r_n) + F(dr_n+1,r_n+1)) with Euler first
         Error_Cranck=y_Cranck[0:4,0]-y_Euler # Calculates the first error Cranck - Euler
         y_Cranck[0:4,1]=y_Cranck[0:4,0]
         while max(abs(Error_Cranck))>1e-6:
-            y_Cranck[0:4,1]=U_Cranck[0:4,i-1]+delta_T/2*(F(U_Cranck[2:4,i-1],U_Cranck[0:2,i-1])+F(y_Cranck[2:4,0],y_Cranck[0:2,0])) #Iterate in the same way but using Cranck-Nicolson solution instead of the Euler one until the solution converges
+            y_Cranck[0:4,1]=U[0:4,i-1]+delta_T/2*(F(U[2:4,i-1],U[0:2,i-1])+F(y_Cranck[2:4,0],y_Cranck[0:2,0])) #Iterate in the same way but using Cranck-Nicolson solution instead of the Euler one until the solution converges
             Error_Cranck=y_Cranck[0:4,1]-y_Cranck[0:4,0]
             y_Cranck[0:4,0]=y_Cranck[0:4,1]
         
-        U_Cranck[0:4,i]=y_Cranck[0:4,1]
-    return U_Cranck
+        U[0:4,i]=y_Cranck[0:4,1]
+    return U
     
 """
 ----------------------------
@@ -91,24 +91,24 @@ where   k1 = F(t_n, dr_n, r_n)
 
 """
 def RK4(F,U0,n,delta_T):
-    U_Runge=zeros((5,n)) #Definition of the size of U state vector where each row is [r(1x2),dr(1x2),t]'
-    U_Runge[0:4,0]= U0 #Include initial conditions in U
+    U=zeros((5,n)) #Definition of the size of U state vector where each row is [r(1x2),dr(1x2),t]'
+    U[0:4,0]= U0 #Include initial conditions in U
     k1=zeros(4)
     k2=zeros(4)
     k3=zeros(4)
     k4=zeros(4)
 
     for i in range (n):
-        U_Runge[4,i]=i*delta_T #Include time in U[5,:]
+        U[4,i]=i*delta_T #Include time in U[5,:]
 
     for i in range (1,n):
-        k1=F(U_Runge[2:4,i-1],U_Runge[0:2,i-1]) #k1 = F(t_n, dr_n, r_n)
-        k2=F(U_Runge[2:4,i-1] + delta_T/2*k1[2:4],U_Runge[0:2,i-1] + delta_T/2*k1[0:2]) #k2 = F(t_n + delta_T/2, dr_n + delta_T/2*k1, r_n + delta_T/2*k1) 
-        k3=F(U_Runge[2:4,i-1] + delta_T/2*k2[2:4],U_Runge[0:2,i-1] + delta_T/2*k2[0:2]) #k3 = F(t_n + delta_T/2, dr_n + delta_T/2*k2, r_n + delta_T/2*k2)
-        k4=F(U_Runge[2:4,i-1] + delta_T*k3[2:4],U_Runge[0:2,i-1] + delta_T*k3[0:2]) #k4 = F(t_n + delta_T, dr_n + delta_T*k3, r_n + delta_T*k3)
-        U_Runge[0:4,i]= U_Runge[0:4,i-1] + delta_T/6 * (k1 + 2*k2 + 2*k3 + k4) #Explicit Runge-Kutta 4th scheme--> U_n+1 = U_n + delta_T/6 * (k1 + 2*k2 + 2*k3 + k4)
+        k1=F(U[2:4,i-1],U[0:2,i-1]) #k1 = F(t_n, dr_n, r_n)
+        k2=F(U[2:4,i-1] + delta_T/2*k1[2:4],U[0:2,i-1] + delta_T/2*k1[0:2]) #k2 = F(t_n + delta_T/2, dr_n + delta_T/2*k1, r_n + delta_T/2*k1) 
+        k3=F(U[2:4,i-1] + delta_T/2*k2[2:4],U[0:2,i-1] + delta_T/2*k2[0:2]) #k3 = F(t_n + delta_T/2, dr_n + delta_T/2*k2, r_n + delta_T/2*k2)
+        k4=F(U[2:4,i-1] + delta_T*k3[2:4],U[0:2,i-1] + delta_T*k3[0:2]) #k4 = F(t_n + delta_T, dr_n + delta_T*k3, r_n + delta_T*k3)
+        U[0:4,i]= U[0:4,i-1] + delta_T/6 * (k1 + 2*k2 + 2*k3 + k4) #Explicit Runge-Kutta 4th scheme--> U_n+1 = U_n + delta_T/6 * (k1 + 2*k2 + 2*k3 + k4)
     
-    return U_Runge
+    return U
 
 """
 ----------------------------
@@ -123,27 +123,27 @@ until the solution converges so the Error < tolerance
 """
 
 def Inverse_Euler(F,U0,n,delta_T):
-    U_InverseEuler=zeros((5,n)) #Definition of the size of U state vector where each row is [r(1x2),dr(1x2),t]'
-    U_InverseEuler[0:4,0]= U0 #Include initial conditions in U
+    U=zeros((5,n)) #Definition of the size of U state vector where each row is [r(1x2),dr(1x2),t]'
+    U[0:4,0]= U0 #Include initial conditions in U
     y_Euler=zeros(4) #Definition of the vector in which the Euler solution will be stored for each time step to iterate
     y_InverseEuler=zeros((4,2)) #Definition of the vector in which the InverseEuler solution will be stored for each time step to iterate
     Error_InverseEuler=zeros(4) #Definition of the error
     
     for i in range (n):
-        U_InverseEuler[4,i]=i*delta_T #Include time in U in U[5,:]
+        U[4,i]=i*delta_T #Include time in U in U[5,:]
 
     for i in range (1,n):
-        y_Euler=U_InverseEuler[0:4,i-1]+delta_T*F(U_InverseEuler[2:4,i-1],U_InverseEuler[0:2,i-1]) #Euler scheme--> U_n+1 = U_n + delta_T * F(dr_n,r_n)
-        y_InverseEuler[0:4,0]=U_InverseEuler[0:4,i-1]+delta_T*(F(y_Euler[2:4],y_Euler[0:2])) #InverseEuler scheme--> U_n+1 = U_n + delta_T * ( F(dr_n+1,r_n+1)) with Euler first
+        y_Euler=U[0:4,i-1]+delta_T*F(U[2:4,i-1],U[0:2,i-1]) #Euler scheme--> U_n+1 = U_n + delta_T * F(dr_n,r_n)
+        y_InverseEuler[0:4,0]=U[0:4,i-1]+delta_T*(F(y_Euler[2:4],y_Euler[0:2])) #InverseEuler scheme--> U_n+1 = U_n + delta_T * ( F(dr_n+1,r_n+1)) with Euler first
         Error_InverseEuler=y_InverseEuler[0:4,0]-y_Euler # Calculates the first error InverseEuler - Euler
         y_InverseEuler[0:4,1]=y_InverseEuler[0:4,0]
         while max(abs(Error_InverseEuler))>1e-6:
-            y_InverseEuler[0:4,1]=U_InverseEuler[0:4,i-1]+delta_T*(F(y_InverseEuler[2:4,0],y_InverseEuler[0:2,0])) #Iterate in the same way but using Cranck-Nicolson solution instead of the Euler one until the solution converges
+            y_InverseEuler[0:4,1]=U[0:4,i-1]+delta_T*(F(y_InverseEuler[2:4,0],y_InverseEuler[0:2,0])) #Iterate in the same way but using Cranck-Nicolson solution instead of the Euler one until the solution converges
             Error_InverseEuler=y_InverseEuler[0:4,1]-y_InverseEuler[0:4,0]
             y_InverseEuler[0:4,0]=y_InverseEuler[0:4,1]
         
-        U_InverseEuler[0:4,i]=y_InverseEuler[0:4,1]
-    return U_InverseEuler
+        U[0:4,i]=y_InverseEuler[0:4,1]
+    return U
 
 """
 ----------------------------

@@ -7,13 +7,12 @@ Estudiante del Master Universitario en Sistemas Espaciales en la Universidad Pol
 Contenidos de este repositorio:
 
   - Milestone 1
-  
   - Milestone 2
-  
   - Milestone 3
-
   - Milestone 4
-
   - Milestone 5
+  - Milestone 6
 
-soon: Milestone 6
+  - Cauchy problem module
+  - Temporal schemes module
+  - Stability regions module
